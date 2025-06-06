@@ -7,24 +7,32 @@ function App() {
   const [comfortLevel, setComfortLevel] = useState(50)
   const [comfortText, setComfortText] = useState('Neutral')
   const [beliefNumber, setBeliefNumber] = useState(125)
+
   const [beliefs, setBeliefs] = useState({})
   const [selectedBelief, setSelectedBelief] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   
   const spectrumRef = useRef(null)
   const handleRef = useRef(null)
-  const [todos, setTodos] = useState([])
-console.log("todos", todos)
+  const [data, setData] = useState([])
+console.log("data", data)
   useEffect(() => {
-    async function getTodos() {
-      const { data: todos } = await supabase.from('todos').select()
-
-      if (todos.length > 1) {
-        setTodos(todos)
+    async function getData() {
+      const { data: todos, error } = await supabase
+        .from('Dominant Beliefs Numbers')
+        .select('*')
+        .order('number', { ascending: true })
+      
+      if (error) {
+        console.error('Error fetching data:', error)
+        return
+      }
+      
+      if (todos && todos.length > 0) {
+        setData(todos)
       }
     }
-
-    getTodos()
+    getData()
   }, [])
   useEffect(() => {
     // Load beliefs from JSON file
@@ -117,14 +125,18 @@ console.log("todos", todos)
     if (isNaN(value)) {
       value = 1
     } else {
-      value = Math.max(1, Math.min(311, value))
+      value = Math.max(1, Math.min(data.length, value))
     }
     setBeliefNumber(value)
   }
 
   const handleRevealBelief = () => {
-    const belief = beliefs[beliefNumber]
-    setSelectedBelief(belief || 'No belief found for this number. Please choose another.')
+    const matchingData = data.find(item => item.number === beliefNumber)
+    if (matchingData) {
+      setSelectedBelief(matchingData.content)
+    } else {
+      setSelectedBelief('No belief found for this number. Please choose another.')
+    }
     setCurrentStep(3)
   }
 
@@ -177,7 +189,7 @@ console.log("todos", todos)
       {currentStep === 2 && (
         <div className="step active">
           <div className="number-selection">
-            <h2>Choose a number between 1 and 311</h2>
+            <h2>Choose a number between 1 and {data.length}</h2>
             <p>This number will reveal a subconscious belief that may be influencing your comfort level.</p>
             <div className="number-input">
               <input
@@ -185,7 +197,7 @@ console.log("todos", todos)
                 value={beliefNumber}
                 onChange={handleNumberChange}
                 min="1"
-                max="311"
+                max={data.length}
               />
             </div>
           </div>
@@ -223,14 +235,14 @@ console.log("todos", todos)
                 <h3>Single Session</h3>
                 <div className="price">€350</div>
                 <p>One guided session to address your specific belief</p>
-                <button className="book-btn">Book Now</button>
+                <button className="book-btn" onClick={() => window.open('https://tidycal.com/ccequity/60-minute-mindshifting', '_blank')}>Book Now</button>
               </div>
               <div className="pricing-option">
                 <h3>Complete Package</h3>
                 <div className="price">€1000</div>
                 <p>3 Sessions + Perception Journal</p>
                 <p><small>Recommended for lasting transformation</small></p>
-                <button className="book-btn">Book Package</button>
+                <button className="book-btn" onClick={() => window.open('https://tidycal.com/ccequity/60-minute-mindshifting', '_blank')}>Book Package</button>
               </div>
             </div>
           </div>

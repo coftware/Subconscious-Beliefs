@@ -114,6 +114,9 @@ body {
   text-align: center;
   border: 2px solid #ddd;
   border-radius: 8px;
+  color: black;
+  background-color: transparent;
+
   outline: none;
 }
 
