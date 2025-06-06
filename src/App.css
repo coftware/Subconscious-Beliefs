@@ -1,0 +1,279 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f7fa;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.popup-container {
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 600px;
+  padding: 30px;
+  position: relative;
+  overflow: hidden;
+}
+
+.popup-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.popup-header h1 {
+  color: #3a7bd5;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.popup-header p {
+  color: #666;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.step {
+  display: none;
+  animation: fadeIn 0.5s;
+}
+
+.step.active {
+  display: block;
+}
+
+.spectrum-container {
+  margin: 40px 0;
+}
+
+.spectrum-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.spectrum-label span {
+  font-weight: 600;
+}
+
+.spectrum-track {
+  height: 20px;
+  background: linear-gradient(to right, #ff6b6b, #feca57, #48dbfb, #1dd1a1);
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+}
+
+.spectrum-handle {
+  width: 30px;
+  height: 30px;
+  background-color: white;
+  border: 3px solid #3a7bd5;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.spectrum-value {
+  text-align: center;
+  margin-top: 15px;
+  font-weight: 600;
+  color: #3a7bd5;
+}
+
+.number-selection {
+  margin: 40px 0;
+  text-align: center;
+}
+
+.number-selection h2 {
+  margin-bottom: 20px;
+  color: #3a7bd5;
+}
+
+.number-input {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
+.number-input input {
+  width: 100px;
+  height: 50px;
+  font-size: 24px;
+  text-align: center;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+}
+
+.number-input input:focus {
+  border-color: #3a7bd5;
+}
+
+.belief-result {
+  background-color: #f0f7ff;
+  border-radius: 10px;
+  padding: 25px;
+  margin: 30px 0;
+  border-left: 5px solid #3a7bd5;
+}
+
+.belief-result h2 {
+  color: #3a7bd5;
+  margin-top: 0;
+}
+
+.belief-text {
+  font-size: 18px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.belief-explanation {
+  font-size: 15px;
+  color: #666;
+  font-style: italic;
+}
+
+.session-offer {
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  padding: 25px;
+  margin: 30px 0;
+  text-align: center;
+}
+
+.session-offer h2 {
+  color: #3a7bd5;
+  margin-top: 0;
+}
+
+.pricing-options {
+  display: flex;
+  justify-content: space-around;
+  margin: 25px 0;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.pricing-option {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  width: 45%;
+  min-width: 200px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.pricing-option:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.pricing-option h3 {
+  color: #3a7bd5;
+  margin-top: 0;
+}
+
+.price {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+  margin: 15px 0;
+}
+
+.book-btn {
+  background-color: #3a7bd5;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 30px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 15px;
+}
+
+.book-btn:hover {
+  background-color: #2c5aa0;
+}
+
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.nav-btn {
+  background-color: transparent;
+  border: 2px solid #3a7bd5;
+  color: #3a7bd5;
+  border-radius: 30px;
+  padding: 10px 25px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-btn:hover {
+  background-color: #3a7bd5;
+  color: white;
+}
+
+.nav-btn.next {
+  background-color: #3a7bd5;
+  color: white;
+}
+
+.nav-btn.next:hover {
+  background-color: #2c5aa0;
+}
+
+.progress-bar {
+  height: 5px;
+  background-color: #eee;
+  border-radius: 5px;
+  margin-top: 30px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background-color: #3a7bd5;
+  width: 33%;
+  transition: width 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .popup-container {
+    padding: 20px;
+    width: 95%;
+  }
+  .pricing-options {
+    flex-direction: column;
+    align-items: center;
+  }
+  .pricing-option {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+}

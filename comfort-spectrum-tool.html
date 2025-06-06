@@ -1,0 +1,445 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comfort Spectrum Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .popup-container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        .popup-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .popup-header h1 {
+            color: #3a7bd5;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .popup-header p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .step {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        .step.active {
+            display: block;
+        }
+        .spectrum-container {
+            margin: 40px 0;
+        }
+        .spectrum-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .spectrum-label span {
+            font-weight: 600;
+        }
+        .spectrum-track {
+            height: 20px;
+            background: linear-gradient(to right, #ff6b6b, #feca57, #48dbfb, #1dd1a1);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+        .spectrum-handle {
+            width: 30px;
+            height: 30px;
+            background-color: white;
+            border: 3px solid #3a7bd5;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .spectrum-value {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: 600;
+            color: #3a7bd5;
+        }
+        .number-selection {
+            margin: 40px 0;
+            text-align: center;
+        }
+        .number-selection h2 {
+            margin-bottom: 20px;
+            color: #3a7bd5;
+        }
+        .number-input {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        .number-input input {
+            width: 100px;
+            height: 50px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+        }
+        .number-input input:focus {
+            border-color: #3a7bd5;
+        }
+        .belief-result {
+            background-color: #f0f7ff;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 30px 0;
+            border-left: 5px solid #3a7bd5;
+        }
+        .belief-result h2 {
+            color: #3a7bd5;
+            margin-top: 0;
+        }
+        .belief-text {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .belief-explanation {
+            font-size: 15px;
+            color: #666;
+            font-style: italic;
+        }
+        .session-offer {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .session-offer h2 {
+            color: #3a7bd5;
+            margin-top: 0;
+        }
+        .pricing-options {
+            display: flex;
+            justify-content: space-around;
+            margin: 25px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .pricing-option {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            width: 45%;
+            min-width: 200px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .pricing-option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        .pricing-option h3 {
+            color: #3a7bd5;
+            margin-top: 0;
+        }
+        .price {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin: 15px 0;
+        }
+        .book-btn {
+            background-color: #3a7bd5;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 15px;
+        }
+        .book-btn:hover {
+            background-color: #2c5aa0;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        .nav-btn {
+            background-color: transparent;
+            border: 2px solid #3a7bd5;
+            color: #3a7bd5;
+            border-radius: 30px;
+            padding: 10px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .nav-btn:hover {
+            background-color: #3a7bd5;
+            color: white;
+        }
+        .nav-btn.next {
+            background-color: #3a7bd5;
+            color: white;
+        }
+        .nav-btn.next:hover {
+            background-color: #2c5aa0;
+        }
+        .progress-bar {
+            height: 5px;
+            background-color: #eee;
+            border-radius: 5px;
+            margin-top: 30px;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            background-color: #3a7bd5;
+            width: 33%;
+            transition: width 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 768px) {
+            .popup-container {
+                padding: 20px;
+                width: 95%;
+            }
+            .pricing-options {
+                flex-direction: column;
+                align-items: center;
+            }
+            .pricing-option {
+                width: 100%;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="popup-container">
+        <div class="popup-header">
+            <h1>Explore Your World Comfort</h1>
+            <p>Discover the subconscious beliefs that may be limiting your comfort in exploring the world.</p>
+        </div>
+        <!-- Step 1: Comfort Spectrum -->
+        <div class="step active" id="step1">
+            <h2>Where do you see yourself on the comfort spectrum?</h2>
+            <div class="spectrum-container">
+                <div class="spectrum-label">
+                    <span>Non-Comfort</span>
+                    <span>Comfort</span>
+                </div>
+                <div class="spectrum-track" id="spectrum">
+                    <div class="spectrum-handle" id="handle"></div>
+                </div>
+                <div class="spectrum-value" id="comfort-value">Neutral (50%)</div>
+            </div>
+            <div class="navigation">
+                <div></div>
+                <button class="nav-btn next" id="next-to-step2">Continue</button>
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 33%"></div>
+            </div>
+        </div>
+        <!-- Step 2: Number Selection -->
+        <div class="step" id="step2">
+            <div class="number-selection">
+                <h2>Choose a number between 1 and 311</h2>
+                <p>This number will reveal a subconscious belief that may be influencing your comfort level.</p>
+                <div class="number-input">
+                    <input type="number" id="belief-number" min="1" max="311" value="125">
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-btn" id="back-to-step1">Back</button>
+                <button class="nav-btn next" id="next-to-step3">Reveal My Belief</button>
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 66%"></div>
+            </div>
+        </div>
+        <!-- Step 3: Belief Display and Offer -->
+        <div class="step" id="step3">
+            <div class="belief-result">
+                <h2>Your Dominant Subconscious Belief</h2>
+                <div class="belief-text" id="belief-text">
+                    <!-- Belief will be loaded here -->
+                </div>
+                <div class="belief-explanation">
+                    This belief may be limiting your ability to fully embrace new experiences and explore the world with confidence.
+                </div>
+            </div>
+            <div class="session-offer">
+                <h2>Transform Your Belief, Expand Your Comfort</h2>
+                <p>Work with me to discharge this limiting belief through deep PEAT and mindshifting methods.</p>
+                <div class="pricing-options">
+                    <div class="pricing-option">
+                        <h3>Single Session</h3>
+                        <div class="price">€350</div>
+                        <p>One guided session to address your specific belief</p>
+                        <button class="book-btn">Book Now</button>
+                    </div>
+                    <div class="pricing-option">
+                        <h3>Complete Package</h3>
+                        <div class="price">€1000</div>
+                        <p>3 Sessions + Perception Journal</p>
+                        <p><small>Recommended for lasting transformation</small></p>
+                        <button class="book-btn">Book Package</button>
+                    </div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-btn" id="back-to-step2">Back</button>
+                <div></div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+    // DOM Elements
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    const nextToStep2 = document.getElementById('next-to-step2');
+    const backToStep1 = document.getElementById('back-to-step1');
+    const nextToStep3 = document.getElementById('next-to-step3');
+    const backToStep2 = document.getElementById('back-to-step2');
+    const spectrum = document.getElementById('spectrum');
+    const handle = document.getElementById('handle');
+    const comfortValue = document.getElementById('comfort-value');
+    const beliefNumber = document.getElementById('belief-number');
+    const beliefText = document.getElementById('belief-text');
+    // Beliefs database (will be loaded from JSON)
+    let beliefs = {};
+    // Load beliefs from JSON file
+    fetch('beliefs.json')
+      .then(response => response.json())
+      .then(data => {
+        beliefs = data;
+      });
+    // Navigation between steps
+    nextToStep2.addEventListener('click', () => {
+      step1.classList.remove('active');
+      step2.classList.add('active');
+    });
+    backToStep1.addEventListener('click', () => {
+      step2.classList.remove('active');
+      step1.classList.add('active');
+    });
+    nextToStep3.addEventListener('click', () => {
+      const number = parseInt(beliefNumber.value);
+      // Find the belief for the selected number
+      let belief = beliefs[number];
+      if (!belief) {
+        // If not found, show a fallback message
+        belief = "No belief found for this number. Please choose another.";
+      }
+      beliefText.textContent = `"${belief}"`;
+      step2.classList.remove('active');
+      step3.classList.add('active');
+    });
+    backToStep2 && backToStep2.addEventListener('click', () => {
+      step3.classList.remove('active');
+      step2.classList.add('active');
+    });
+    // Spectrum slider functionality
+    let isDragging = false;
+    handle.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      e.preventDefault();
+    });
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        updateHandlePosition(e.clientX);
+      }
+    });
+    spectrum.addEventListener('click', (e) => {
+      updateHandlePosition(e.clientX);
+    });
+    // Touch support
+    handle.addEventListener('touchstart', (e) => {
+      isDragging = true;
+    });
+    document.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+    document.addEventListener('touchmove', (e) => {
+      if (isDragging) {
+        updateHandlePosition(e.touches[0].clientX);
+      }
+    });
+    function updateHandlePosition(clientX) {
+      const rect = spectrum.getBoundingClientRect();
+      let position = (clientX - rect.left) / rect.width;
+      // Constrain position between 0 and 1
+      position = Math.max(0, Math.min(1, position));
+      // Update handle position
+      handle.style.left = `${position * 100}%`;
+      // Update comfort value text
+      const percentage = Math.round(position * 100);
+      let comfortText;
+      if (percentage < 20) {
+        comfortText = "Very Uncomfortable";
+      } else if (percentage < 40) {
+        comfortText = "Somewhat Uncomfortable";
+      } else if (percentage < 60) {
+        comfortText = "Neutral";
+      } else if (percentage < 80) {
+        comfortText = "Somewhat Comfortable";
+      } else {
+        comfortText = "Very Comfortable";
+      }
+      comfortValue.textContent = `${comfortText} (${percentage}%)`;
+    }
+    // Input validation for number selection
+    beliefNumber.addEventListener('input', () => {
+      let value = parseInt(beliefNumber.value);
+      if (isNaN(value)) {
+        beliefNumber.value = 1;
+      } else {
+        value = Math.max(1, Math.min(311, value)); // Adjust max to your current highest number
+        beliefNumber.value = value;
+      }
+    });
+    </script>
+</body>
+</html>
