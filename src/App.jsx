@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
-import supabase from './utils/supabase'
+import { db } from './utils/firebase'
+import { collection, getDocs, query, orderBy, writeBatch, doc, setDoc, deleteDoc } from 'firebase/firestore'
+
+const ADMIN_PASSWORD = '07h%*136v8NoV' // fixed admin password
 
 function App() {
   const [showLanding, setShowLanding] = useState(true)
@@ -12,13 +15,18 @@ function App() {
   const [comfortText, setComfortText] = useState('Neutral')
   const [beliefNumber, setBeliefNumber] = useState(125)
 
-  const [beliefs, setBeliefs] = useState({})
   const [selectedBelief, setSelectedBelief] = useState('')
   const [isDragging, setIsDragging] = useState(false)
+
+  // Editor states
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [isSavingFs, setIsSavingFs] = useState(false)
+  const [saveFsMsg, setSaveFsMsg] = useState('')
   
   const spectrumRef = useRef(null)
   const handleRef = useRef(null)
   const [data, setData] = useState([])
+  const shouldFocusNewRowRef = useRef(false)
 console.log("data", data)
   useEffect(() => {
     // Landing: simple visitor counter using localStorage
@@ -32,6 +40,7 @@ console.log("data", data)
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         setIsVideoOpen(false)
+        setIsEditorOpen(false)
       }
     }
     document.addEventListener('keydown', onKeyDown)
@@ -39,38 +48,68 @@ console.log("data", data)
   }, [])
 
   useEffect(() => {
-    document.body.style.overflow = isVideoOpen ? 'hidden' : ''
+    document.body.style.overflow = isVideoOpen || isEditorOpen ? 'hidden' : ''
     return () => {
       document.body.style.overflow = ''
     }
-  }, [isVideoOpen])
+  }, [isVideoOpen, isEditorOpen])
 
+  // URL param: ?passwordAdmin=XXXX or ?adminPassword=XXXX
   useEffect(() => {
-    async function getData() {
-      const { data: todos, error } = await supabase
-        .from('Dominant Beliefs Numbers')
-        .select('*')
-        .order('number', { ascending: true })
-      
-      if (error) {
-        console.error('Error fetching data:', error)
-        return
+    const url = new URL(window.location.href)
+    const p1 = url.searchParams.get('passwordAdmin')
+    const p2 = url.searchParams.get('adminPassword')
+    const param = p1 ?? p2
+    if (param !== null) {
+      if (param === ADMIN_PASSWORD) {
+        setIsEditorOpen(true)
+      } else {
+        setIsEditorOpen(false)
+        setShowLanding(true)
       }
-      
-      if (todos && todos.length > 0) {
-        setData(todos)
+      // Clean URL (remove both keys, then rewrite)
+      url.searchParams.delete('passwordAdmin')
+      url.searchParams.delete('adminPassword')
+      const cleaned = url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : '') + url.hash
+      window.history.replaceState({}, document.title, cleaned)
+    }
+  }, [])
+
+  // Load beliefs: try Firestore first. If empty, seed from local file once.
+  useEffect(() => {
+    const loadFromFirestoreOrSeed = async () => {
+      try {
+        const q = query(collection(db, 'beliefs'), orderBy('number', 'asc'))
+        const snap = await getDocs(q)
+        if (!snap.empty) {
+          const rows = snap.docs.map(d => ({ id: d.id, ...(d.data()) }))
+          setData(rows.map(r => ({ number: r.number, content: r.content })))
+          return
+        }
+        // Seed from local file if collection is empty
+        const json = await fetch('beliefs.json').then(r => r.json())
+        if (Array.isArray(json)) {
+          setData(json)
+          const batch = writeBatch(db)
+          json.forEach((row) => {
+            const ref = doc(db, 'beliefs', String(row.number))
+            batch.set(ref, { number: row.number, content: row.content })
+          })
+          await batch.commit()
+        }
+      } catch (err) {
+        console.error('Failed to load/seed Firestore', err)
+        // Fallback to local file
+        try {
+          const json = await fetch('beliefs.json').then(r => r.json())
+          if (Array.isArray(json)) setData(json)
+        } catch {}
       }
     }
-    getData()
+    loadFromFirestoreOrSeed()
   }, [])
-  useEffect(() => {
-    // Load beliefs from JSON file
-    fetch('beliefs.json')
-      .then(response => response.json())
-      .then(data => {
-        setBeliefs(data)
-      })
 
+  useEffect(() => {
     // Add global event listeners
     const handleGlobalMouseUp = () => {
       setIsDragging(false)
@@ -104,6 +143,18 @@ console.log("data", data)
       document.removeEventListener('touchend', handleGlobalTouchEnd)
     }
   }, [isDragging])
+
+  // Focus the last row input after adding
+  useEffect(() => {
+    if (isEditorOpen && shouldFocusNewRowRef.current) {
+      const input = document.querySelector('.editor-table tbody tr:last-child input[type="text"]')
+      if (input && 'focus' in input) {
+        input.focus()
+        try { input.scrollIntoView({ behavior: 'smooth', block: 'center' }) } catch {}
+      }
+      shouldFocusNewRowRef.current = false
+    }
+  }, [data.length, isEditorOpen])
 
   const updateHandlePosition = (clientX) => {
     if (!spectrumRef.current) return
@@ -167,6 +218,57 @@ console.log("data", data)
       setSelectedBelief('No belief found for this number. Please choose another.')
     }
     setCurrentStep(3)
+  }
+
+  const addRow = () => {
+    setData(prev => [...prev, { number: prev.length + 1, content: '' }])
+    shouldFocusNewRowRef.current = true
+  }
+
+  const normalizedData = () => data.map((row, i) => ({ number: i + 1, content: row.content }))
+
+  const saveToLocal = () => {
+    try {
+      localStorage.setItem('beliefsData', JSON.stringify(normalizedData()))
+      alert('Saved locally. Note: This does not modify public/beliefs.json on disk.')
+    } catch {
+      alert('Failed to save to localStorage')
+    }
+  }
+
+  const resetToFile = () => {
+    localStorage.removeItem('beliefsData')
+    fetch('beliefs.json')
+      .then(r => r.json())
+      .then(j => { if (Array.isArray(j)) setData(j) })
+  }
+
+  const saveToFirestore = async () => {
+    try {
+      setIsSavingFs(true)
+      setSaveFsMsg('')
+      const batch = writeBatch(db)
+      const rows = normalizedData()
+      // Upsert all rows with doc id = number
+      rows.forEach(row => {
+        batch.set(doc(db, 'beliefs', String(row.number)), { number: row.number, content: row.content })
+      })
+      // Delete docs that no longer exist (fetch existing ids then diff)
+      const existing = await getDocs(collection(db, 'beliefs'))
+      const existingIds = new Set(existing.docs.map(d => d.id))
+      const newIds = new Set(rows.map(r => String(r.number)))
+      existingIds.forEach(id => { if (!newIds.has(id)) batch.delete(doc(db, 'beliefs', id)) })
+
+      await batch.commit()
+      setSaveFsMsg('Saved')
+      setTimeout(() => setSaveFsMsg(''), 2500)
+    } catch (e) {
+      console.error(e)
+      setSaveFsMsg('Save failed')
+      setTimeout(() => setSaveFsMsg(''), 3000)
+    } finally {
+      setIsSavingFs(false)
+    }
   }
 
   return (
@@ -315,6 +417,7 @@ console.log("data", data)
       )}
       </>
       )}
+
       {isVideoOpen && (
         <div className="modal-overlay" onClick={() => setIsVideoOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -327,6 +430,46 @@ console.log("data", data)
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditorOpen && (
+        <div className="modal-overlay" onClick={() => setIsEditorOpen(false)}>
+          <div className="modal-content light" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" aria-label="Close" onClick={() => setIsEditorOpen(false)}>×</button>
+            <h3>Edit Beliefs</h3>
+            <div className="editor-actions">
+              <button className="nav-btn" onClick={addRow}>Add Row</button>
+              <button className="nav-btn next" disabled={isSavingFs} onClick={saveToFirestore}>{isSavingFs ? 'Saving…' : 'Save'}</button>
+              {saveFsMsg && <span style={{ marginLeft: 8 }}>{saveFsMsg}</span>}
+            </div>
+            <div className="editor-table-wrapper">
+              <table className="editor-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '80px' }}>#</th>
+                    <th>Content</th>
+                    <th style={{ width: '90px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((row, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <input type="number" value={row.number} onChange={(e) => setData(prev => { const copy = [...prev]; copy[idx] = { ...copy[idx], number: parseInt(e.target.value) || 0 }; return copy })} style={{ width: '70px' }} />
+                      </td>
+                      <td>
+                        <input type="text" value={row.content} onChange={(e) => setData(prev => { const copy = [...prev]; copy[idx] = { ...copy[idx], content: e.target.value }; return copy })} style={{ width: '100%' }} />
+                      </td>
+                      <td>
+                        <button className="nav-btn" onClick={() => setData(prev => prev.filter((_, i) => i !== idx).map((r, i2) => ({ number: i2 + 1, content: r.content })))}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
