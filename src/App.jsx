@@ -3,6 +3,10 @@ import './App.css'
 import supabase from './utils/supabase'
 
 function App() {
+  const [showLanding, setShowLanding] = useState(true)
+  const [visitorCount, setVisitorCount] = useState(0)
+  const [isVideoOpen, setIsVideoOpen] = useState(false)
+  const [videoUrl, setVideoUrl] = useState('https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')
   const [currentStep, setCurrentStep] = useState(1)
   const [comfortLevel, setComfortLevel] = useState(50)
   const [comfortText, setComfortText] = useState('Neutral')
@@ -16,6 +20,31 @@ function App() {
   const handleRef = useRef(null)
   const [data, setData] = useState([])
 console.log("data", data)
+  useEffect(() => {
+    // Landing: simple visitor counter using localStorage
+    const storedCount = parseInt(localStorage.getItem('visitorCount') || '0')
+    const next = isNaN(storedCount) ? 1 : storedCount + 1
+    localStorage.setItem('visitorCount', String(next))
+    setVisitorCount(next)
+  }, [])
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsVideoOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = isVideoOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isVideoOpen])
+
   useEffect(() => {
     async function getData() {
       const { data: todos, error } = await supabase
@@ -141,7 +170,34 @@ console.log("data", data)
   }
 
   return (
-    <div className="popup-container">
+    <div className={`popup-container ${showLanding ? 'is-landing' : ''}`}>
+      {showLanding && (
+        <div className="landing">
+          <div className="popup-header">
+          <h1>Thanks for stopping by! You are visitor number</h1>
+          </div>
+          <div className="flip-counter" aria-label={`Visitor ${visitorCount}`}>
+            {String(visitorCount).padStart(4, '0').split('').map((digit, idx) => (
+              <div key={idx} className="flip-digit">{digit}</div>
+            ))}
+          </div>
+          <div className="landing-actions">
+            <button
+              className="nav-btn"
+              onClick={() => {
+                setVideoUrl('https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')
+                setIsVideoOpen(true)
+              }}
+            >
+              Watch Video
+            </button>
+            <button className="nav-btn next" onClick={() => setShowLanding(false)}>Start Now</button>
+          </div>
+        </div>
+      )}
+      
+      {!showLanding && (
+      <>
       <div className="popup-header">
         <h1>Explore Your World Comfort</h1>
         <p>Discover the subconscious beliefs that may be limiting your comfort in exploring the world.</p>
@@ -254,6 +310,24 @@ console.log("data", data)
           </div>
           <div className="progress-bar">
             <div className="progress" style={{ width: '100%' }} />
+          </div>
+        </div>
+      )}
+      </>
+      )}
+      {isVideoOpen && (
+        <div className="modal-overlay" onClick={() => setIsVideoOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" aria-label="Close" onClick={() => setIsVideoOpen(false)}>×</button>
+            <div className="video-responsive">
+              <iframe
+                src={videoUrl}
+                title="Intro Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
           </div>
         </div>
       )}
