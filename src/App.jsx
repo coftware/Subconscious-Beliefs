@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import { db } from './utils/firebase'
-import { collection, getDocs, query, orderBy, writeBatch, doc, setDoc, deleteDoc } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, writeBatch, doc, runTransaction, getDoc } from 'firebase/firestore'
 
 const ADMIN_PASSWORD = '07h%*136v8NoV' // fixed admin password
 
@@ -29,11 +29,34 @@ function App() {
   const shouldFocusNewRowRef = useRef(false)
 console.log("data", data)
   useEffect(() => {
-    // Landing: simple visitor counter using localStorage
-    const storedCount = parseInt(localStorage.getItem('visitorCount') || '0')
-    const next = isNaN(storedCount) ? 1 : storedCount + 1
-    localStorage.setItem('visitorCount', String(next))
-    setVisitorCount(next)
+    // Global visitor counter stored in Firestore; increment only once per browser
+    const syncVisitor = async () => {
+      try {
+        const countersRef = doc(db, 'meta', 'counters')
+        const already = localStorage.getItem('visitor_counted') === 'true'
+        if (!already) {
+          await runTransaction(db, async (tx) => {
+            const snap = await tx.get(countersRef)
+            if (!snap.exists()) {
+              tx.set(countersRef, { visitors: 1 })
+            } else {
+              const current = Number(snap.data().visitors || 0)
+              tx.update(countersRef, { visitors: current + 1 })
+            }
+          })
+          localStorage.setItem('visitor_counted', 'true')
+        }
+        const latest = await getDoc(countersRef)
+        if (latest.exists()) {
+          setVisitorCount(Number(latest.data().visitors || 0))
+        } else {
+          setVisitorCount(1)
+        }
+      } catch (e) {
+        console.error('Visitor counter sync failed', e)
+      }
+    }
+    syncVisitor()
   }, [])
 
   useEffect(() => {
@@ -75,38 +98,20 @@ console.log("data", data)
     }
   }, [])
 
-  // Load beliefs: try Firestore first. If empty, seed from local file once.
+  // Load beliefs: Firestore only
   useEffect(() => {
-    const loadFromFirestoreOrSeed = async () => {
+    const loadFromFirestore = async () => {
       try {
         const q = query(collection(db, 'beliefs'), orderBy('number', 'asc'))
         const snap = await getDocs(q)
-        if (!snap.empty) {
-          const rows = snap.docs.map(d => ({ id: d.id, ...(d.data()) }))
-          setData(rows.map(r => ({ number: r.number, content: r.content })))
-          return
-        }
-        // Seed from local file if collection is empty
-        const json = await fetch('beliefs.json').then(r => r.json())
-        if (Array.isArray(json)) {
-          setData(json)
-          const batch = writeBatch(db)
-          json.forEach((row) => {
-            const ref = doc(db, 'beliefs', String(row.number))
-            batch.set(ref, { number: row.number, content: row.content })
-          })
-          await batch.commit()
-        }
+        const rows = snap.docs.map(d => ({ id: d.id, ...(d.data()) }))
+        setData(rows.map(r => ({ number: r.number, content: r.content })))
       } catch (err) {
-        console.error('Failed to load/seed Firestore', err)
-        // Fallback to local file
-        try {
-          const json = await fetch('beliefs.json').then(r => r.json())
-          if (Array.isArray(json)) setData(json)
-        } catch {}
+        console.error('Failed to load Firestore', err)
+        setData([])
       }
     }
-    loadFromFirestoreOrSeed()
+    loadFromFirestore()
   }, [])
 
   useEffect(() => {
@@ -226,22 +231,6 @@ console.log("data", data)
   }
 
   const normalizedData = () => data.map((row, i) => ({ number: i + 1, content: row.content }))
-
-  const saveToLocal = () => {
-    try {
-      localStorage.setItem('beliefsData', JSON.stringify(normalizedData()))
-      alert('Saved locally. Note: This does not modify public/beliefs.json on disk.')
-    } catch {
-      alert('Failed to save to localStorage')
-    }
-  }
-
-  const resetToFile = () => {
-    localStorage.removeItem('beliefsData')
-    fetch('beliefs.json')
-      .then(r => r.json())
-      .then(j => { if (Array.isArray(j)) setData(j) })
-  }
 
   const saveToFirestore = async () => {
     try {
